@@ -1,5 +1,7 @@
-a,b=[],[]
-a.append(1)
-a.append(1)
-a.append(1)
-print a[0],a[1],a[2]
+import numpy as np
+a=[1,2,3,4]
+b=[3,3,3,9]
+a=np.array(a)
+b=np.array(b)
+c=a+1
+print c
