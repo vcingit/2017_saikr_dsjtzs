@@ -1,23 +1,30 @@
 # -*- coding: utf-8 -*-
+import matplotlib
+#matplotlib.use('Agg')
 import matplotlib.pyplot as plt
 import pandas as pd
+from matplotlib.pyplot import plot,savefig
+
 #根据x和y坐标作图
-def makeLineChart(x,y,target_x,target_y,label):
+def makeLineChart(x,y,target_x,target_y,label,pic_id):
 	if len(x)==0 or len(y) ==0:
 		pass
 	plt.title('label:%s'%(label))
 	plt.xlabel('x-axis')
 	plt.ylabel('y-axis')
-	plt.plot(x, y,'r',label='line')
-	if target_x !=None and target_y !=None:
+	plt.plot(x, y,'r')
+	#if target_x !=None and target_y !=None:
 		#plt.plot(target_x,target_y,'b',label='point')
-		plt.plot(target_x,target_y,'b',marker='*')
-		# plt.annotate("target", xy = (target_x, target_y), xytext = (-4, 50),\
-		# 	arrowprops = dict(facecolor = "r", headlength = 10, headwidth = 30, width = 10))  
+		#plt.plot(target_x,target_y,'b',marker='*')
 
 	plt.legend(bbox_to_anchor=[0.3, 1])
 	plt.grid()
-	plt.show()
+	#plt.show()
+	if label=='0':
+		plt.savefig('../pic/0/%s'%(pic_id))
+	else:
+		plt.savefig('../pic/1/%s'%(pic_id))
+	plt.close('all')
 
 #读取文件
 def readFile(filepath):
@@ -44,15 +51,15 @@ def dataToChart(filepath):
 		trail_x,trail_y,trail_t=getTrail(row)
 		target=str(row[2]).split(',')
 		label=str(row[3]) if len(row)==3 else -1
-		makeLineChart(trail_x,trail_y,target[0],target[1],label)
+		makeLineChart(trail_x,trail_y,target[0],target[1],label,ix)
 
 def writeResult(result,filepath):
 	file=open(filepath,'w')  
 	file.write('\n'.join(result));  
 	file.close()
 
-if __name__ == "__main__":
-	data=readFile('data/dsjtzs_txfz_test1.txt')
+def firstResult():
+	data=readFile('../data/dsjtzs_txfz_test1.txt')
 	res=[]
 	#print 'end_x','end_y','end_t','target_x','target_y','x_D_value_rate','y_D_value_rate'
 	for ix, row in data.iterrows():
@@ -76,4 +83,8 @@ if __name__ == "__main__":
 	for i in range(len(res)):
 		if res[i]==0:
 			result.append(str(i+1))
-	writeResult(result,'result/submit.txt')
+	writeResult(result,'../result/submit.txt')
+
+if __name__ == "__main__":
+	dataToChart('../data/dsjtzs_txfz_training.txt')
+	
