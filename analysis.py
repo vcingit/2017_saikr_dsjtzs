@@ -7,7 +7,7 @@ import pandas as pd
 from matplotlib.pyplot import plot,savefig
 
 #根据x和y坐标作图
-def makeLineChart(x,y,target_x,target_y,label,pic_id,model):
+def makeLineChart(x,y,target_x,target_y,label,pic_id,folder_name='train_pic',model=0):
 	if len(x)==0 or len(y) ==0:
 		pass
 	plt.title('label:%s'%(label))
@@ -24,15 +24,24 @@ def makeLineChart(x,y,target_x,target_y,label,pic_id,model):
 		plt.show()
 	else:
 		if label=='0':
-			plt.savefig('../pic/0/%s'%(pic_id))
+			plt.savefig('../%s/0/%s'%(folder_name,pic_id))
 		else:
-			plt.savefig('../pic/1/%s'%(pic_id))
+			plt.savefig('../%s/1/%s'%(folder_name,pic_id))
 		plt.close('all')
+
+def makeScatterChart(x_1,y_1,x_0,y_0):
+	
+	plt.xlabel('x-axis')
+	plt.ylabel('y-axis')
+	plt.scatter(x_1, y_1,color='r')
+	plt.scatter(x_0, y_0,color='b')
+	plt.show()
 
 #读取文件
 def readFile(filepath):
 	print 'read%s'%(filepath)
 	data = pd.read_table(filepath,header=None,encoding='utf-8',delim_whitespace=True,index_col=0)
+	print '------------------------------'
 	return data
 
 #获取移动轨迹坐标和时间
@@ -48,14 +57,14 @@ def getTrail(row):
 	return trail_x,trail_y,trail_t
 
 #将坐标在图中表示
-def dataToChart(filepath):
+def dataToChart(filepath,folder_name='train_pic',model=0):
 	data=readFile(filepath)
 	#row 1-移动轨迹坐标 2-目的坐标 3-标签
 	for ix, row in data.iterrows():
 		trail_x,trail_y,trail_t=getTrail(row)
 		target=str(row[2]).split(',')
 		label=str(row[3]) if len(row)==3 else -1
-		makeLineChart(trail_x,trail_y,target[0],target[1],label,ix,0)
+		makeLineChart(trail_x,trail_y,target[0],target[1],label,ix,folder_name,model)
 
 def writeResult(result,filepath):
 	file=open(filepath,'w')  
@@ -125,7 +134,7 @@ def getFeature(trail_x,trail_y,trail_t,target,label):
 	sum_x,sum_y,sum_t=ntrail_x.sum(),ntrail_y.sum(),ntrail_t.sum()
 	if all_step_num>1:
 		average_x,average_y,average_t=sum_x/all_step_num,sum_y/all_step_num,sum_t/all_step_num
-	#variance_x,variance_y,variance_t=np.std(ntrail_x,ddof=1),np.std(ntrail_y,ddof=1),np.std(ntrail_t,ddof=1)
+		variance_x,variance_y,variance_t=np.std(ntrail_x,ddof=1),np.std(ntrail_y,ddof=1),np.std(ntrail_t,ddof=1)
 	#距离 速度 回退情况 角度
 	dif_x,dif_y,dif_t=[],[],[]
 	for i in range(all_step_num):
@@ -133,9 +142,9 @@ def getFeature(trail_x,trail_y,trail_t,target,label):
 			tmp_x=trail_x[i]-trail_x[i-1]
 			tmp_y=trail_y[i]-trail_y[i-1]
 			tmp_t=trail_t[i]-trail_t[i-1]
-			dif_x.append(tmp_x)
-			dif_y.append(tmp_y)
-			dif_t.append(tmp_t)
+			dif_x.append(abs(tmp_x))
+			dif_y.append(abs(tmp_y))
+			dif_t.append(abs(tmp_t))
 			if tmp_x<0:
 				if_x_back=1
 
@@ -158,13 +167,19 @@ def getFeature(trail_x,trail_y,trail_t,target,label):
 			average_sp=sp_xyt.sum()/sp_xyt.shape[0]
 			variance_sp=np.std(sp_xyt,ddof=1)
 	
-	return max_x,min_x,max_y,min_y,\
-		sta_x,sta_y,end_x,end_y,\
-		average_x,average_y,average_t,\
-		variance_x,variance_y,variance_t,\
-		all_step_num,all_time,if_x_back,if_t_back,\
-		average_sp,variance_sp,\
-		each_step_distance_average,each_step_distance_variance
+	range_x=max_x-min_x
+	range_y=max_y-min_y
+	move_x=end_x-sta_x
+	move_y=end_y-sta_y
+
+	return each_step_distance_average,each_step_distance_variance
+		#range_x,range_y,\
+		#move_x,move_y,\
+		#average_x,average_y,average_t,\
+		#variance_x,variance_y,variance_t,\
+		#all_step_num,all_time,if_x_back,if_t_back,\
+		#average_sp,variance_sp,\
+		#each_step_distance_average,each_step_distance_variance
 		#obtuse_num,right_num,acute_num,average_degree,variance_degree
 
 def get_score(predict,correct):
@@ -179,6 +194,7 @@ def get_score(predict,correct):
 		R=G/P2
 		return P,R,5*P*R/(2*P+3*R)*100
 def loadDataSet(data):
+	print 'LoadDataSet...'
 	fea=[]
 	labels=[]
 	for ix, row in data.iterrows():
@@ -188,37 +204,78 @@ def loadDataSet(data):
 		labels.append(label)
 		#print ix,
 		fea.append(getFeature(trail_x,trail_y,trail_t,target,label))
-	nfea=np.array(fea)
-	nlabels=np.array(labels)
-	return nfea,nlabels
+	# for i in range(len(fea)):
+	# 	for j in fea[i]:
+	# 		print str(j)+'\t',
+	# 	print labels[i]
+	print '------------------------------'
+	return fea,labels
 
 def cross_validation(x,y):
+	print 'cross_validation...'
 	from sklearn.model_selection import train_test_split
 	x_train, x_test, y_train, y_test = train_test_split(x, y, test_size = 0.2)
+	
+	# from sklearn import preprocessing
+	# scaler = preprocessing.StandardScaler().fit(x_train)
+	# scaler.transform(x_train)
+	# scaler.transform(x_test)
+
 	from sklearn.svm import SVC
-	clf = SVC(C=1.28,gamma=0.000001)
+	clf = SVC()
+	# from sklearn import tree
+	# clf = tree.DecisionTreeClassifier()
+
 	clf.fit(x_train, y_train)
 	res=clf.predict(x_test)
-	print get_score(res,y_test)
+	#print 'reality:',y_test,'\npredict:',res
+	print 'score is:',get_score(res,y_test)
+	print '------------------------------'
 
 def get_result(train,label,test):
+	print 'training...'
+	# from sklearn import preprocessing
+	# scaler = preprocessing.StandardScaler().fit(train)
+	# scaler.transform(train)
+	# scaler.transform(test)
 	from sklearn.svm import SVC
-	clf = SVC(C=1.28,gamma=0.000001)
+	clf = SVC()
+
+	# from sklearn import tree
+	# clf = tree.DecisionTreeClassifier()
+
 	clf.fit(train, label)
 	res=clf.predict(test)
-	print res==0
+	#print 'predict res:',res
+	result=convert_res_to_result(res)
+	#print 'result:',result
+	print '------------------------------'
+	print 'predict num:',len(result),'result:',np.array(result)
+	print '------------------------------'
+	return result
+
+def convert_res_to_result(res):
 	result=[]
 	for i in range(len(res)):
-		if res[i]==0:
+		if res[i]=='0':
 			result.append(str(i+1))
 	return result
 
 if __name__ == "__main__":
-	#dataToChart('../data/dsjtzs_txfz_training.txt')
+	#dataToChart('../data/dsjtzs_txfz_test1.txt','test_pic',1)
 	train_data=readFile('../data/dsjtzs_txfz_training.txt')
+	fea,labels=loadDataSet(train_data[:])
+	nfea=np.array(fea)
+	nlabels=np.array(labels)
+
 	test_data=readFile('../data/dsjtzs_txfz_test1.txt')
-	nfea,nlabels=loadDataSet(train_data)
 	test,tlabels=loadDataSet(test_data)
-	#cross_validation(nfea,nlabels)
 	result=get_result(nfea,nlabels,test)
 	writeResult(result,'../result/submit.txt')
+
+	#cross_validation(nfea,nlabels)
+	# l1=[fea[i] for i in range(len(fea)) if labels[i]=='1']
+	# l2=[fea[i] for i in range(len(fea)) if labels[i]=='0']
+	# x_1,y_1=[i[0] for i in l1],[i[1] for i in l1]
+	# x_0,y_0=[i[0] for i in l2],[i[1] for i in l2]
+	# makeScatterChart(x_1,y_1,x_0,y_0)
