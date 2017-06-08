@@ -72,32 +72,29 @@ def writeResult(result,filepath):
 	file.write('\n'.join(result));  
 	file.close()
 
-# def firstResult():
-# 	data=readFile('../data/dsjtzs_txfz_test1.txt')
-# 	res=[]
-# 	#print 'end_x','end_y','end_t','target_x','target_y','x_D_value_rate','y_D_value_rate'
-# 	for ix, row in data.iterrows():
-# 		trail_x,trail_y,trail_t=getTrail(row)
-# 		target=str(row[2]).split(',')
-# 		label=str(row[3]) if len(row)==3 else -1
+def regular(filepath):
+	data=readFile(filepath)
+	res=[]
+	#print 'end_x','end_y','end_t','target_x','target_y','x_D_value_rate','y_D_value_rate'
+	for ix, row in data.iterrows():
+		trail_x,trail_y,trail_t=getTrail(row)
+		target=str(row[2]).split(',')
+		label=str(row[3]) if len(row)==3 else -1
 		
-# 		end_x,end_y,end_t=float(trail_x[-1]),float(trail_y[-1]),float(trail_t[-1])
-# 		target_x,target_y=float(target[0]),float(target[1])
+		end_x,end_y,end_t=float(trail_x[-1]),float(trail_y[-1]),float(trail_t[-1])
+		target_x,target_y=float(target[0]),float(target[1])
 		
-# 		x_D_value_rate=abs(end_x-target_x)/end_x*100.0
-# 		y_D_value_rate=abs(end_y-target_y)/end_y*100.0
+		x_D_value_rate=abs(end_x-target_x)/end_x*100.0
+		y_D_value_rate=abs(end_y-target_y)/end_y*100.0
 		
 		
-# 		#print end_x,end_y,end_t,target_x,target_y,x_D_value_rate,y_D_value_rate
-# 		if end_y<0 or end_x<0 or x_D_value_rate<2 or end_t>20000 or end_t<1000:
-# 			res.append(0)
-# 		else:
-# 			res.append(1)
-# 	result=[]
-# 	for i in range(len(res)):
-# 		if res[i]==0:
-# 			result.append(str(i+1))
-# 	writeResult(result,'../result/submit.txt')
+		#print end_x,end_y,end_t,target_x,target_y,x_D_value_rate,y_D_value_rate
+		if end_y<0 or end_x<0 or x_D_value_rate<2 or end_t>20000 or end_t<1000:
+			res.append('0')
+		else:
+			res.append('1')
+	return res
+
 def getFeature(trail_x,trail_y,trail_t,target,label):
 	#x最大值 x最小值 y最大值 y最小值
 	#起点x位置 起点y位置 终点x位置 终点y位置
@@ -174,13 +171,11 @@ def getFeature(trail_x,trail_y,trail_t,target,label):
 	move_y=end_y-sta_y
 
 	return each_step_distance_average,each_step_distance_variance,\
-		all_step_num,all_time,if_x_back,if_t_back
-		#range_x,range_y,\
-		#move_x,move_y,\
-		#average_x,average_y,average_t,\
-		#variance_x,variance_y,variance_t,\
+		average_sp,variance_sp,\
+		all_time/all_step_num,if_x_back,if_t_back,\
+		average_x,average_y,average_t,\
+		variance_x,variance_y,variance_t,\
 		#average_sp,variance_sp,\
-		#each_step_distance_average,each_step_distance_variance
 		#obtuse_num,right_num,acute_num,average_degree,variance_degree
 
 def get_score(predict,correct):
@@ -217,15 +212,7 @@ def cross_validation(x,y):
 	from sklearn.model_selection import train_test_split
 	x_train, x_test, y_train, y_test = train_test_split(x, y, test_size = 0.2)
 	
-	from sklearn import preprocessing
-	scaler = preprocessing.StandardScaler().fit(x_train)
-	scaler.transform(x_train)
-	scaler.transform(x_test)
-
-	from sklearn.svm import SVC
-	clf = SVC()
-	# from sklearn import tree
-	# clf = tree.DecisionTreeClassifier()
+	clf,x_train,x_test=normalization(x_train,x_test)
 
 	clf.fit(x_train, y_train)
 	res=clf.predict(x_test)
@@ -235,15 +222,8 @@ def cross_validation(x,y):
 
 def get_result(train,label,test):
 	print 'training...'
-	# from sklearn import preprocessing
-	# scaler = preprocessing.StandardScaler().fit(train)
-	# scaler.transform(train)
-	# scaler.transform(test)
-	from sklearn.svm import SVC
-	clf = SVC()
 
-	# from sklearn import tree
-	# clf = tree.DecisionTreeClassifier()
+	clf,train,test=normalization(train,test)
 
 	clf.fit(train, label)
 	res=clf.predict(test)
@@ -254,6 +234,26 @@ def get_result(train,label,test):
 	print 'predict num:',len(result),'result:',np.array(result)
 	print '------------------------------'
 	return result
+
+def normalization(x_train,x_test):
+	from sklearn import preprocessing
+
+	#standard标准化
+	# scaler = preprocessing.StandardScaler().fit(x_train)
+	# scaler.transform(x_train)
+	# scaler.transform(x_test)
+
+	#最大最小归一化
+	# min_max_scaler = preprocessing.MinMaxScaler()
+	# x_train = min_max_scaler.fit_transform(x_train)
+	# x_test = min_max_scaler.fit_transform(x_test)
+
+	from sklearn import tree
+	clf = tree.DecisionTreeClassifier()
+	# from sklearn.svm import SVC
+	# clf = SVC()
+	
+	return clf,x_train,x_test
 
 def convert_res_to_result(res):
 	result=[]
@@ -272,7 +272,7 @@ if __name__ == "__main__":
 	# test_data=readFile('../data/dsjtzs_txfz_test1.txt')
 	# test,tlabels=loadDataSet(test_data)
 	# result=get_result(nfea,nlabels,test)
-	# writeResult(result,'../result/submit.txt')
+	# writeResult(result,'../result/BDC1282_月知飞.txt')
 
 	cross_validation(nfea,nlabels)
 	# l1=[fea[i] for i in range(len(fea)) if labels[i]=='1']
@@ -280,3 +280,5 @@ if __name__ == "__main__":
 	# x_1,y_1=[i[0] for i in l1],[i[1] for i in l1]
 	# x_0,y_0=[i[0] for i in l2],[i[1] for i in l2]
 	# makeScatterChart(x_1,y_1,x_0,y_0)
+
+	#print 'score is:',get_score(np.array(regular('../data/dsjtzs_txfz_training.txt')),np.array(labels))
