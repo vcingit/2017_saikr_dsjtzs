@@ -1,10 +1,3 @@
-<<<<<<< HEAD
-a,b=[],[]
-a.append(1)
-a.append(1)
-a.append(1)
-print a[0],a[1],a[2]
-=======
 import numpy as np
 x=[[1.0,2.0,1900.0],[0.0,3.0,9810.0],[1.0,2.0,12010.0],[0.0,2.0,11810.0],\
 	[1.0,1.0,10100.0],[0.0,1.0,11000.0],[1.0,2.0,15100.0],[0.0,1.0,11010.0],\
@@ -31,4 +24,3 @@ clf = SVC(kernel='linear')
 clf.fit(x_train, y_train)
 res=clf.predict(x_test)
 print res,y_test
->>>>>>> a5cae4fc766feea6e6c2f241507c8aea1a153d2b

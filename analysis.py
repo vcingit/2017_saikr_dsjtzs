@@ -140,11 +140,18 @@ def getFeature(trail_x,trail_y,trail_t,target,label):
 			tmp_x=trail_x[i]-trail_x[i-1]
 			tmp_y=trail_y[i]-trail_y[i-1]
 			tmp_t=trail_t[i]-trail_t[i-1]
+			if tmp_t < 0 :
+				continue
 			dif_x.append(abs(tmp_x))
 			dif_y.append(abs(tmp_y))
 			dif_t.append(abs(tmp_t))
 			if tmp_x<0:
 				if_x_back=1
+
+		if i<all_step_num-2:
+			x0,y0=trail_x[i],trail_y[i]
+			x1,y1=trail_x[i+1],trail[i+1]
+			x2,y2=trail_x[i+2],trail[i+2]
 
 	#删除时间间隔为0或者负的点
 	valid_index=[i for i in range(len(dif_t)) if dif_t[i] > 0]
@@ -172,7 +179,7 @@ def getFeature(trail_x,trail_y,trail_t,target,label):
 
 	return each_step_distance_average,each_step_distance_variance,\
 		average_sp,variance_sp,\
-		all_time/all_step_num,if_x_back,if_t_back,\
+		all_time,all_step_num,if_x_back,if_t_back,\
 		average_x,average_y,average_t,\
 		variance_x,variance_y,variance_t,\
 		#average_sp,variance_sp,\
@@ -182,6 +189,7 @@ def get_score(predict,correct):
 	G=float(np.sum((correct=='0')&(predict=='0')))
 	P1=float(np.sum(predict=='0'))
 	P2=float(np.sum(correct=='0'))
+	print 'predict/correct/hit:',P1,P2,G
 	if P1==0:
 		P,R=0,0
 		return 0,0,0
@@ -211,7 +219,8 @@ def cross_validation(x,y):
 	print 'cross_validation...'
 	from sklearn.model_selection import train_test_split
 	x_train, x_test, y_train, y_test = train_test_split(x, y, test_size = 0.2)
-	
+	print '0 num in train/test:',len([i for i in y_train if i=='0']),len([i for i in y_test if i=='0'])
+
 	clf,x_train,x_test=normalization(x_train,x_test)
 
 	clf.fit(x_train, y_train)
@@ -262,23 +271,25 @@ def convert_res_to_result(res):
 			result.append(str(i+1))
 	return result
 
+def choose_model(nfea,nlabels,model=0):
+	if model==0:
+		cross_validation(nfea,nlabels)
+		# l1=[fea[i] for i in range(len(fea)) if labels[i]=='1']
+		# l2=[fea[i] for i in range(len(fea)) if labels[i]=='0']
+		# x_1,y_1=[i[0] for i in l1],[i[1] for i in l1]
+		# x_0,y_0=[i[0] for i in l2],[i[1] for i in l2]
+		# makeScatterChart(x_1,y_1,x_0,y_0)
+	elif model==1:
+		test_data=readFile('../data/dsjtzs_txfz_test1.txt')
+		test,tlabels=loadDataSet(test_data)
+		result=get_result(nfea,nlabels,test)
+		writeResult(result,'../result/BDC1282.txt')
+
 if __name__ == "__main__":
 	#dataToChart('../data/dsjtzs_txfz_test1.txt','test_pic',1)
 	train_data=readFile('../data/dsjtzs_txfz_training.txt')
 	fea,labels=loadDataSet(train_data[:])
 	nfea=np.array(fea)
 	nlabels=np.array(labels)
-
-	# test_data=readFile('../data/dsjtzs_txfz_test1.txt')
-	# test,tlabels=loadDataSet(test_data)
-	# result=get_result(nfea,nlabels,test)
-	# writeResult(result,'../result/BDC1282_月知飞.txt')
-
-	cross_validation(nfea,nlabels)
-	# l1=[fea[i] for i in range(len(fea)) if labels[i]=='1']
-	# l2=[fea[i] for i in range(len(fea)) if labels[i]=='0']
-	# x_1,y_1=[i[0] for i in l1],[i[1] for i in l1]
-	# x_0,y_0=[i[0] for i in l2],[i[1] for i in l2]
-	# makeScatterChart(x_1,y_1,x_0,y_0)
-
+	choose_model(nfea,nlabels,0)
 	#print 'score is:',get_score(np.array(regular('../data/dsjtzs_txfz_training.txt')),np.array(labels))
