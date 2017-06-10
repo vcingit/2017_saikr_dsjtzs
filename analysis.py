@@ -262,23 +262,25 @@ def convert_res_to_result(res):
 			result.append(str(i+1))
 	return result
 
+def choose_model(nfea,nlabels,model='cv',):
+	if model=='cv':
+		cross_validation(nfea,nlabels)
+		# l1=[fea[i] for i in range(len(fea)) if labels[i]=='1']
+		# l2=[fea[i] for i in range(len(fea)) if labels[i]=='0']
+		# x_1,y_1=[i[0] for i in l1],[i[1] for i in l1]
+		# x_0,y_0=[i[0] for i in l2],[i[1] for i in l2]
+		# makeScatterChart(x_1,y_1,x_0,y_0)
+	elif model=='gs':
+		test_data=readFile('../data/dsjtzs_txfz_test1.txt')
+		test,tlabels=loadDataSet(test_data)
+		result=get_result(nfea,nlabels,test)
+		writeResult(result,'../result/BDC1282_月知飞.txt')
+
 if __name__ == "__main__":
 	#dataToChart('../data/dsjtzs_txfz_test1.txt','test_pic',1)
 	train_data=readFile('../data/dsjtzs_txfz_training.txt')
 	fea,labels=loadDataSet(train_data[:])
 	nfea=np.array(fea)
 	nlabels=np.array(labels)
-
-	# test_data=readFile('../data/dsjtzs_txfz_test1.txt')
-	# test,tlabels=loadDataSet(test_data)
-	# result=get_result(nfea,nlabels,test)
-	# writeResult(result,'../result/BDC1282_月知飞.txt')
-
-	cross_validation(nfea,nlabels)
-	# l1=[fea[i] for i in range(len(fea)) if labels[i]=='1']
-	# l2=[fea[i] for i in range(len(fea)) if labels[i]=='0']
-	# x_1,y_1=[i[0] for i in l1],[i[1] for i in l1]
-	# x_0,y_0=[i[0] for i in l2],[i[1] for i in l2]
-	# makeScatterChart(x_1,y_1,x_0,y_0)
-
+	choose_model(nfea,nlabels,model='gs')
 	#print 'score is:',get_score(np.array(regular('../data/dsjtzs_txfz_training.txt')),np.array(labels))
